@@ -1,0 +1,10 @@
+# OSX
+.DS_Store
+
+# VIM
+*.swp
+*.swo
+
+# Ruby Gems
+*.gem
+Gemfile.lock
