@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name        = 'service_variables'
-  s.version     = '1.0.0'
+  s.version     = '1.1.0'
   s.date        = '2017-04-20'
   s.summary     = 'Service level variables.'
   s.description = 'Wrapper for redis backed configuration variables accessible to multiple servers.'
@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
 
   s.files = ['lib/service_variables.rb']
 
-  s.add_dependency 'redis', '~> 4.0'
+  s.add_dependency 'redis', '>= 3.2.2'
   s.add_development_dependency 'bundler', '~> 1.14'
   s.add_development_dependency 'rspec', '~> 3.0'
   s.add_development_dependency 'rubocop', '~> 0.41'
