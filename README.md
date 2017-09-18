@@ -23,11 +23,14 @@ module App
     # redis_client [Required] Give the ServiceConfig object a Redis client to store values.
     # redis_key    [Optional] Specify a redis key if you have multiple of these
     #                         objects using the same Redis instance.
+    # failure_mode [Optional] Sepcify a failure mode to fall back on if redis is unavailable.
+    #                         Defaults to :raise_exception
     configure redis_client: Redis.new(url: ENV.fetch('REDIS_URL'))
               redis_key: 'special_key'
+              failure_mode: :raise_exception
 
-    boolean_option :foo, default: false
-    integer_option :bar, default: 10, min: 1, max: 100
+    boolean_option :foo, default: false, failure_mode: :use_last_value
+    integer_option :bar, default: 10, min: 1, max: 100, failure_mode: :use_default
     float_option   :baz, default: 3.0, min: 1.0, max: 5.0
     string_option  :boo, default: 'fizz', enum: ['fizz', 'fuzz']
 
@@ -45,6 +48,16 @@ App::Config.foo = true
 App::Config.foo #=> true
 
 App::Config.bar = 1_000 #=> throws InvalidValueError, 'Value too large. max = 1000'
+```
+
+### Failure Modes
+
+To protect against redis connection failures you can specify a designated failure mode when you create your configuration object or on a configuration variable granularity.
+
+```ruby
+failure_mode: :raise_exception #=> raise an exception if cannot connect to Redis
+failure_mode: :use_default #=> use the default value provided at configuration
+failure_mode: :use_last_value #=> use the last value that was read from Redis
 ```
 
 ## Testing
