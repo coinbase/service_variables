@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name        = 'service_variables'
-  s.version     = '1.1.0'
+  s.version     = '1.2.0'
   s.date        = '2017-04-20'
   s.summary     = 'Service level variables.'
   s.description = 'Wrapper for redis backed configuration variables accessible to multiple servers.'
