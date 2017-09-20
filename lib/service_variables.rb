@@ -9,22 +9,27 @@ module ServiceVariables
 
   DEFAULT_REDIS_KEY = 'service_variables_redis_key'
   BOOLEAN_VALUES = [true, false, 'true', 'false'].freeze
+  FAILURE_MODES = %i[raise_exception use_default use_last_value].freeze
 
   attr_writer :service_variables_redis_client, :redis_key
 
-  def configure(redis_client:, redis_key: nil)
+  def configure(redis_client:, redis_key: nil, failure_mode: :raise_exception)
     @service_variables_redis_client = redis_client
     @redis_key = redis_key
+
+    raise InvalidValueError unless FAILURE_MODES.include?(failure_mode)
+    @failure_mode = failure_mode
+    @last_value_map = {}
   end
 
-  def boolean_option(name, default: nil)
+  def boolean_option(name, default: nil, failure_mode: @failure_mode)
     getter_method_name = "#{name}?".to_sym
     setter_method_name = "#{name}=".to_sym
 
     define_singleton_method getter_method_name do
       # Note that all values are stored in Redis as strings.
-      value = get(name)
-      value.nil? ? default : get(name) == 'true'
+      value = get(name, failure_mode)
+      value.nil? ? default : get(name, failure_mode) == 'true'
     end
 
     # Allow for `name` and `name?` accessors of boolean options.
@@ -36,9 +41,9 @@ module ServiceVariables
     end
   end
 
-  def integer_option(name, default: nil, min: nil, max: nil)
+  def integer_option(name, default: nil, min: nil, max: nil, failure_mode: @failure_mode)
     define_singleton_method name do
-      get(name)&.to_i || default
+      get(name, failure_mode)&.to_i || default
     end
 
     define_singleton_method "#{name}=" do |value|
@@ -49,9 +54,9 @@ module ServiceVariables
     end
   end
 
-  def float_option(name, default: nil, min: nil, max: nil)
+  def float_option(name, default: nil, min: nil, max: nil, failure_mode: @failure_mode)
     define_singleton_method name do
-      get(name)&.to_f || default
+      get(name, failure_mode)&.to_f || default
     end
 
     define_singleton_method "#{name}=" do |value|
@@ -62,9 +67,9 @@ module ServiceVariables
     end
   end
 
-  def string_option(name, default: nil, enum: nil)
+  def string_option(name, default: nil, enum: nil, failure_mode: @failure_mode)
     define_singleton_method name do
-      get(name) || default
+      get(name, failure_mode) || default
     end
 
     define_singleton_method "#{name}=" do |value|
@@ -75,8 +80,14 @@ module ServiceVariables
 
   private
 
-  def get(key)
+  def get(key, failure_mode)
     redis.hget(redis_hash_key, key)
+  rescue Redis::BaseConnectionError => e
+    raise e if failure_mode == :raise_exception
+    # If Redis returns a nil, then the default value is used, so we do the same with :use_default
+    return nil if failure_mode == :use_default
+    return @last_value_map[key] if failure_mode == :use_last_value
+    raise InvalidValueError unless FAILURE_MODES.include?(failure_mode)
   end
 
   def set(key, value)
@@ -85,6 +96,8 @@ module ServiceVariables
     else
       redis.hset(redis_hash_key, key, value)
     end
+
+    @last_value_map[key] = value
   end
 
   def redis
