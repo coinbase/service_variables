@@ -18,15 +18,15 @@ require 'service_variables'
 
 module App
   class Config
-    extends ServiceVariables
+    extend ServiceVariables
 
     # redis_client [Required] Give the ServiceConfig object a Redis client to store values.
     # redis_key    [Optional] Specify a redis key if you have multiple of these
     #                         objects using the same Redis instance.
     # failure_mode [Optional] Sepcify a failure mode to fall back on if redis is unavailable.
     #                         Defaults to :raise_exception
-    configure redis_client: Redis.new(url: ENV.fetch('REDIS_URL'))
-              redis_key: 'special_key'
+    configure redis_client: Redis.new(url: ENV.fetch('REDIS_URL')),
+              redis_key: 'special_key',
               failure_mode: :raise_exception
 
     boolean_option :foo, default: false, failure_mode: :use_last_value
